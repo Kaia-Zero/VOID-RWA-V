@@ -1,4 +1,4 @@
-'false'('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
@@ -11,8 +11,7 @@ const app = express();
 const { MONGODB_URI, ADMIN_PASSWORD } = process.env;
 const SECRET_ADMIN_PATH = process.env.SECRET_ADMIN_PATH || 'void-admin-9988';
 const PORT = process.env.PORT || 3000;
-// true = ลิงก์ Raw ไม่ตอบเบราว์เซอร์ (ยกเว้นแอดมินที่ล็อกอินอยู่) ปิดได้ด้วย RAW_GAME_ONLY=false
-const GAME_ONLY = process.env.RAW_GAME_ONLY !== 'true';
+const GAME_ONLY = process.env.RAW_GAME_ONLY !== 'false';
 const ADMIN = `/${SECRET_ADMIN_PATH}`;
 const DASH = `${ADMIN}/dashboard`;
 
@@ -20,6 +19,7 @@ if (!MONGODB_URI || !ADMIN_PASSWORD) {
     console.error('❌ ต้องตั้งค่า MONGODB_URI และ ADMIN_PASSWORD ใน Environment variables');
     process.exit(1);
 }
+
 let SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
     SESSION_SECRET = crypto.randomBytes(32).toString('hex');
@@ -40,11 +40,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// เก็บ session ลง MongoDB ถ้าติดตั้ง connect-mongo ไว้ (npm i connect-mongo) ไม่งั้นใช้ memory
+// เก็บ session ลง MongoDB
 let store;
 try {
     const MS = require('connect-mongo');
-    store = (MS.default || MS).create({ mongoUrl: MONGODB_URI });
+    store = MS.create({ mongoUrl: MONGODB_URI });
     console.log('🗄️ Session store: MongoDB');
 } catch (e) {
     if (e.code !== 'MODULE_NOT_FOUND') throw e;
@@ -80,7 +80,7 @@ const safeEq = (a, b) => crypto.timingSafeEqual(
     crypto.createHash('sha256').update(String(b)).digest()
 );
 
-// จำกัดการเดารหัสผ่าน: ผิด 5 ครั้งต่อ IP แล้วล็อก 15 นาที
+// จำกัดการเดารหัสผ่าน
 const attempts = new Map();
 const WINDOW = 15 * 60 * 1000;
 const tooMany = ip => { const a = attempts.get(ip); return !!a && a.reset > Date.now() && a.n >= 5; };
@@ -91,7 +91,7 @@ const addFail = ip => {
 };
 setInterval(() => { const now = Date.now(); for (const [k, v] of attempts) if (v.reset <= now) attempts.delete(k); }, WINDOW).unref();
 
-const requireAuth = (req, res, next) => (req.session.loggedIn ? next() : res.status(403).send('Access Denied'));
+const requireAuth = (req, res, next) => (req.session.loggedIn ? next() : res.redirect(ADMIN));
 const checkCsrf = (req, res, next) => {
     const t = str(req.body && req.body._csrf);
     if (!req.session.csrf || !safeEq(t, req.session.csrf)) return res.status(403).send('Invalid CSRF token');
@@ -180,7 +180,6 @@ app.get('/', (req, res) => {
         </div></div>`));
 });
 
-// เบราว์เซอร์ส่ง User-Agent แบบ Mozilla/... และหัว Sec-Fetch-* ส่วน HttpGet ของเกม/executor ไม่ส่ง
 const looksLikeBrowser = req => {
     const ua = str(req.get('user-agent'));
     return /mozilla|chrome|safari|firefox|edg\/|opera/i.test(ua) || !!(req.get('sec-fetch-mode') || req.get('sec-fetch-dest'));
@@ -285,8 +284,7 @@ app.get(DASH, async (req, res) => {
                 ${csrf}<input type="hidden" name="mode" value="${editing ? 'edit' : 'new'}">
                 <input type="text" name="filename" value="${esc(editing ? editing.filename : '')}" ${editing ? 'readonly' : ''}
                     placeholder="ชื่อไฟล์ เช่น main.lua" maxlength="100" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required>
-                <textarea name="content" spellcheck="false" placeholder="วางโค้ด Lua ที่นี่..." required>
-${esc(editing ? editing.content : '')}</textarea>
+                <textarea name="content" spellcheck="false" placeholder="วางโค้ด Lua ที่นี่..." required>${esc(editing ? editing.content : '')}</textarea>
                 <div class="actions" style="margin-top:0">
                     <button class="b b-ac b-lg" style="flex:1">💾 บันทึกโค้ด</button>
                     ${editing ? `<a class="b b-lg" href="${DASH}">ยกเลิก</a>` : ''}
