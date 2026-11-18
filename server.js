@@ -2,35 +2,41 @@ const express = require('express');
 const session = require('express-session');
 const app = express();
 
-// ตั้งค่าให้รับข้อมูลแบบ JSON และ Form
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ตั้งค่า Session (ใช้จำว่าคุณล็อกอินแล้ว)
 app.use(session({
-    secret: 'ZeroHubSecretKey_ChangeThis', // เปลี่ยนเป็นอะไรก็ได้ที่คาดเดายาก
+    secret: 'VoidHubSecretKey_ChangeThis',
     resave: false,
     saveUninitialized: true
 }));
 
-// ⚠️ รหัสผ่านของคุณ (แก้ตรงนี้)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'MyPassword123';
 
-// ฐานข้อมูลชั่วคราว (เก็บโค้ด Lua ไว้ในตัวแปร)
-// *หมายเหตุ: ถ้า Render รีสตาร์ท ข้อมูลจะหาย ให้ใช้วิธีเซฟลงไฟล์หรือ Database ภายหลัง
 let scripts = {
-    "example.lua": "-- นี่คือตัวอย่างสคริปต์\nprint('Hello Zero Hub!')"
+    "example.lua": "-- นี่คือตัวอย่างสคริปต์\nprint('Hello Void Hub!')"
 };
 
-// ----------------------------------------------------
+// 🟢 หน้าแรกสุด (หน้าเว็บหลัก)
+app.get('/', (req, res) => {
+    res.send(`
+        <body style="background:#111;color:#fff;font-family:sans-serif;text-align:center;padding-top:100px;">
+            <h1 style="color:#00ffcc;font-size:40px;">VOID HUB API</h1>
+            <p>ระบบโฮสต์สคริปต์ออนไลน์ (Raw Script Server)</p>
+            <br><br>
+            <a href="/admin" style="color:#00ffcc;text-decoration:none;border:1px solid #00ffcc;padding:10px 20px;border-radius:5px;font-weight:bold;">
+                🔐 เข้าสู่ระบบแอดมิน
+            </a>
+        </body>
+    `);
+});
+
 // 🟢 1. ส่วนสำหรับคนทั่วไป (PUBLIC) - ดู Raw ได้อย่างเดียว
-// ----------------------------------------------------
 app.get('/raw/:filename', (req, res) => {
     const filename = req.params.filename;
     const scriptContent = scripts[filename];
 
     if (scriptContent) {
-        // ส่งข้อมูลกลับเป็น text ธรรมดา (Raw) ไม่ใช่ HTML
         res.setHeader('Content-Type', 'text/plain');
         res.send(scriptContent);
     } else {
@@ -38,16 +44,12 @@ app.get('/raw/:filename', (req, res) => {
     }
 });
 
-// ----------------------------------------------------
-// 🔐 2. ส่วนสำหรับแอดมิน (ADMIN) - ต้องล็อกอินก่อน
-// ----------------------------------------------------
-
-// หน้า Login
+// 🔐 2. ส่วนสำหรับแอดมิน (ADMIN)
 app.get('/admin', (req, res) => {
     if (req.session.loggedIn) return res.redirect('/dashboard');
     res.send(`
         <body style="background:#111;color:#fff;font-family:sans-serif;text-align:center;padding-top:100px;">
-            <h2>Zero Hub Admin</h2>
+            <h2>Void Hub Admin</h2>
             <form action="/login" method="POST">
                 <input type="password" name="password" placeholder="ใส่รหัสผ่าน" style="padding:10px;border-radius:5px;border:none;">
                 <button type="submit" style="padding:10px 20px;background:#00ffcc;border:none;border-radius:5px;font-weight:bold;cursor:pointer;">เข้าสู่ระบบ</button>
@@ -56,7 +58,6 @@ app.get('/admin', (req, res) => {
     `);
 });
 
-// ตรวจสอบรหัสผ่าน
 app.post('/login', (req, res) => {
     if (req.body.password === ADMIN_PASSWORD) {
         req.session.loggedIn = true;
@@ -66,16 +67,14 @@ app.post('/login', (req, res) => {
     }
 });
 
-// หน้า Dashboard (ต้องล็อกอินก่อนถึงจะเห็น)
 app.get('/dashboard', (req, res) => {
     if (!req.session.loggedIn) return res.redirect('/admin');
 
-    // สร้างรายการไฟล์ทั้งหมด
     let fileList = Object.keys(scripts).map(f => `<li>${f} <a href="/raw/${f}" target="_blank">[ดู Raw]</a></li>`).join('');
 
     res.send(`
         <body style="background:#111;color:#fff;font-family:sans-serif;padding:20px;">
-            <h2>🛠️ Zero Hub Dashboard</h2>
+            <h2>🛠️ Void Hub Dashboard</h2>
             <p>ล็อกอินสำเร็จ! คุณสามารถแก้ไขสคริปต์ได้</p>
             
             <h3>📜 รายการไฟล์:</h3>
@@ -95,7 +94,6 @@ app.get('/dashboard', (req, res) => {
     `);
 });
 
-// บันทึกโค้ด (ต้องล็อกอินก่อน)
 app.post('/save', (req, res) => {
     if (!req.session.loggedIn) return res.status(403).send('Access Denied');
     
@@ -104,7 +102,6 @@ app.post('/save', (req, res) => {
     res.redirect('/dashboard');
 });
 
-// ออกจากระบบ
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/admin');
