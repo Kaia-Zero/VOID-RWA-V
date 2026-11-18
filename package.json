@@ -1,7 +1,6 @@
 {
   "name": "void-hub-raw-system",
   "version": "1.0.0",
-  "description": "Raw script hosting with admin auth",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +8,8 @@
   "dependencies": {
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.3.1"
   }
 }
