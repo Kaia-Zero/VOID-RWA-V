@@ -11,6 +11,8 @@ const app = express();
 const { MONGODB_URI, ADMIN_PASSWORD } = process.env;
 const SECRET_ADMIN_PATH = process.env.SECRET_ADMIN_PATH || 'void-admin-9988';
 const PORT = process.env.PORT || 3000;
+// true = ลิงก์ Raw ไม่ตอบเบราว์เซอร์ (ยกเว้นแอดมินที่ล็อกอินอยู่) ปิดได้ด้วย RAW_GAME_ONLY=false
+const GAME_ONLY = process.env.RAW_GAME_ONLY !== 'false';
 const ADMIN = `/${SECRET_ADMIN_PATH}`;
 const DASH = `${ADMIN}/dashboard`;
 
@@ -178,8 +180,17 @@ app.get('/', (req, res) => {
         </div></div>`));
 });
 
+// เบราว์เซอร์ส่ง User-Agent แบบ Mozilla/... และหัว Sec-Fetch-* ส่วน HttpGet ของเกม/executor ไม่ส่ง
+const looksLikeBrowser = req => {
+    const ua = str(req.get('user-agent'));
+    return /mozilla|chrome|safari|firefox|edg\/|opera/i.test(ua) || !!(req.get('sec-fetch-mode') || req.get('sec-fetch-dest'));
+};
+
 app.get('/raw/:filename', async (req, res) => {
     try {
+        if (GAME_ONLY && !req.session.loggedIn && looksLikeBrowser(req)) {
+            return res.status(404).type('text/plain').send('Script not found');
+        }
         const s = await Script.findOne({ filename: req.params.filename }, 'content').lean();
         if (!s) return res.status(404).type('text/plain').send('Script not found');
         res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' });
