@@ -12,7 +12,7 @@ const { MONGODB_URI, ADMIN_PASSWORD } = process.env;
 const SECRET_ADMIN_PATH = process.env.SECRET_ADMIN_PATH || 'void-admin-9988';
 const PORT = process.env.PORT || 3000;
 // true = ลิงก์ Raw ไม่ตอบเบราว์เซอร์ (ยกเว้นแอดมินที่ล็อกอินอยู่) ปิดได้ด้วย RAW_GAME_ONLY=false
-const GAME_ONLY = process.env.RAW_GAME_ONLY !== 'false';
+const GAME_ONLY = process.env.RAW_GAME_ONLY !== 'true';
 const ADMIN = `/${SECRET_ADMIN_PATH}`;
 const DASH = `${ADMIN}/dashboard`;
 
