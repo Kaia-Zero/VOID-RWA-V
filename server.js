@@ -102,43 +102,65 @@ const checkCsrf = (req, res, next) => {
 
 // ================= หน้าเว็บ (UI) =================
 const CSS = `
-:root{--bg:#0a0a0a;--card:#15151a;--line:#2a2a33;--ac:#00ffcc;--red:#ff4444;--mut:#8a8a96;--ink:#f2f2f5}
+:root{--bg:#05060d;--panel:rgba(14,16,32,.72);--line:rgba(0,255,213,.2);--ac:#00ffd5;--pink:#ff2bd6;--blue:#00b3ff;--red:#ff4466;--mut:#7f86a6;--ink:#e9ecff}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 'Segoe UI',Tahoma,'Noto Sans Thai',sans-serif;padding:20px}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.6 'Segoe UI',Tahoma,'Noto Sans Thai',sans-serif;padding:20px;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:-2;background:radial-gradient(620px 420px at 12% -5%,rgba(0,255,213,.17),transparent 70%),radial-gradient(620px 420px at 100% 100%,rgba(255,43,214,.15),transparent 70%)}
+body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(0,255,213,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,213,.055) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%);mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%)}
 .wrap{max-width:680px;margin:0 auto}
-h1,h2{color:var(--ac);text-shadow:0 0 10px rgba(0,255,204,.3);margin:0 0 4px}
-h3{color:#ccc;border-bottom:1px solid var(--line);padding-bottom:10px;margin:32px 0 14px}
+h1,h2{font-family:Orbitron,'Segoe UI','Noto Sans Thai',sans-serif;letter-spacing:.06em;margin:0 0 4px}
+h2{color:var(--ac);font-size:22px;text-shadow:0 0 14px rgba(0,255,213,.55)}
+h3{display:flex;align-items:center;gap:12px;color:var(--ink);font-size:17px;margin:36px 0 14px}
+h3::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
 .sub{color:var(--mut);font-size:14px}
-input[type=text],input[type=password],input[type=search],textarea{width:100%;padding:12px;background:var(--card);border:1px solid #444;border-radius:8px;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;outline:none;margin-bottom:12px}
-input:focus,textarea:focus{border-color:var(--ac)}
-input[readonly]{opacity:.7}
+.hero{text-align:center}
+.eyebrow{color:var(--pink);font:600 13px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;margin-bottom:10px;text-shadow:0 0 10px rgba(255,43,214,.6)}
+.hero-title{font-size:clamp(40px,12vw,76px);font-weight:800;line-height:1.1;background:linear-gradient(90deg,var(--ac),var(--blue) 50%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 16px rgba(0,255,213,.4))}
+input[type=text],input[type=password],input[type=search],textarea{width:100%;padding:12px 14px;background:rgba(5,6,13,.85);border:1px solid rgba(0,255,213,.25);border-radius:8px;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;outline:none;margin-bottom:12px;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(0,255,213,.14),0 0 16px rgba(0,255,213,.2)}
+input[readonly]{opacity:.65}
 textarea{resize:vertical;min-height:180px}
-.b{display:inline-block;padding:7px 13px;border:1px solid var(--line);border-radius:6px;background:#1d1d24;color:var(--ink);font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer}
-.b:hover{border-color:var(--ac)}
-.b-ac{background:var(--ac);border-color:var(--ac);color:#000}
-.b-red{color:var(--red);border-color:var(--red);background:transparent}
-.b-lg{padding:12px 20px;font-size:15px;border-radius:8px}
+.b{display:inline-block;padding:7px 13px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.04);color:var(--ink);font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,box-shadow .15s,color .15s}
+.b:hover{border-color:var(--ac);color:var(--ac);box-shadow:0 0 14px rgba(0,255,213,.35)}
+.b-ac{background:linear-gradient(90deg,var(--ac),var(--blue));border-color:transparent;color:#00201c;box-shadow:0 0 16px rgba(0,255,213,.3)}
+.b-ac:hover{color:#00201c;border-color:transparent;box-shadow:0 0 24px rgba(0,255,213,.6)}
+.b-red{color:var(--red);border-color:rgba(255,68,102,.5);background:transparent}
+.b-red:hover{color:var(--red);border-color:var(--red);box-shadow:0 0 14px rgba(255,68,102,.4)}
+.b-lg{padding:12px 20px;font-size:15px;border-radius:10px}
 .b-full{display:block;width:100%;text-align:center}
 ul{list-style:none;padding:0;margin:0}
-.item{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:8px;padding:12px 14px;margin-bottom:10px}
-.fn{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ac);word-break:break-all}
+.item{background:var(--panel);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:10px;padding:12px 14px;margin-bottom:10px;transition:box-shadow .15s,border-color .15s}
+.item:hover{box-shadow:0 0 20px rgba(0,255,213,.13);border-color:rgba(0,255,213,.4)}
+.fn{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ac);word-break:break-all;text-shadow:0 0 8px rgba(0,255,213,.35)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .actions form{margin:0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:0 0 20px rgba(0,255,204,.08)}
-.toast{padding:10px 14px;border-radius:8px;margin:14px 0;font-weight:600}
-.toast.ok{background:rgba(0,255,204,.1);color:var(--ac);border:1px solid var(--ac)}
-.toast.err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid var(--red)}
-.drop{background:var(--card);border:1px dashed #444;padding:18px;border-radius:8px;text-align:center;color:var(--mut);margin-bottom:12px}
+.card{background:var(--panel);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(0,255,213,.35);border-radius:16px;padding:28px;box-shadow:0 0 34px rgba(0,255,213,.13),inset 0 0 30px rgba(0,255,213,.04)}
+.login{width:100%;max-width:360px;text-align:center}
+.login h2{margin-bottom:6px}
+.login form{margin-top:20px}
+.lock{font-size:34px;margin-bottom:6px;filter:drop-shadow(0 0 10px rgba(0,255,213,.6))}
+.toast{padding:10px 14px;border-radius:10px;margin:14px 0;font-weight:600}
+.toast.ok{background:rgba(0,255,213,.08);color:var(--ac);border:1px solid var(--ac);box-shadow:0 0 14px rgba(0,255,213,.2)}
+.toast.err{background:rgba(255,68,102,.09);color:var(--red);border:1px solid var(--red);box-shadow:0 0 14px rgba(255,68,102,.2)}
+.drop{background:rgba(5,6,13,.6);border:1px dashed rgba(0,255,213,.35);padding:18px;border-radius:10px;text-align:center;color:var(--mut);margin-bottom:12px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .center{display:flex;justify-content:center;align-items:center;min-height:90vh}
-.badge{background:rgba(0,255,204,.1);color:var(--ac);padding:5px 15px;border-radius:20px;border:1px solid var(--ac);font-size:14px}
+.badge{display:inline-flex;align-items:center;gap:9px;background:rgba(0,255,213,.08);color:var(--ac);padding:6px 18px;border-radius:999px;border:1px solid var(--ac);font-size:14px;box-shadow:0 0 16px rgba(0,255,213,.2)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ac);box-shadow:0 0 10px var(--ac);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 `;
 
 const page = (title, body, script = '') => `<!DOCTYPE html>
 <html lang="th"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
-<title>${esc(title)}</title><style>${CSS}</style></head>
+<title>${esc(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<style>${CSS}</style></head>
 <body>${body}${script ? `<script>${script}</script>` : ''}</body></html>`;
 
 const CLIENT_JS = `
@@ -174,11 +196,12 @@ const MESSAGES = {
 
 // ================= Routes: สาธารณะ =================
 app.get('/', (req, res) => {
-    res.send(page('VOID HUB API', `
-        <div class="center" style="text-align:center"><div>
-            <h1 style="font-size:40px">VOID HUB API</h1>
-            <p class="sub">ระบบโฮสต์สคริปต์ออนไลน์ (Raw Script Server)</p>
-            <div style="margin-top:40px"><span class="badge">● ระบบออนไลน์</span></div>
+    res.send(page('VOID HUB', `
+        <div class="center"><div class="hero">
+            <div class="eyebrow">// RAW SCRIPT SERVER</div>
+            <h1 class="hero-title">VOID HUB</h1>
+            <p class="sub">ระบบโฮสต์สคริปต์ออนไลน์</p>
+            <div style="margin-top:36px"><span class="badge"><span class="dot"></span>ระบบออนไลน์</span></div>
         </div></div>`));
 });
 
@@ -239,8 +262,10 @@ app.get(ADMIN, (req, res) => {
     const err = req.query.err === '2' ? 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาที'
               : req.query.err ? 'รหัสผ่านไม่ถูกต้อง' : '';
     res.set('Cache-Control', 'no-store').send(page('Admin Login', `
-        <div class="center"><div class="card" style="width:100%;max-width:340px;text-align:center">
-            <h2 style="margin-bottom:24px">🔐 Admin Login</h2>
+        <div class="center"><div class="card login">
+            <div class="lock">🔐</div>
+            <h2>ADMIN ACCESS</h2>
+            <p class="sub">กรอกรหัสผ่านเพื่อเข้าสู่ระบบ</p>
             ${err ? `<div class="toast err">${esc(err)}</div>` : ''}
             <form method="POST" action="/login">
                 <input type="password" name="password" placeholder="รหัสผ่าน" autocomplete="current-password" autofocus required>
@@ -303,7 +328,7 @@ app.get(DASH, async (req, res) => {
         res.set('Cache-Control', 'no-store').send(page('Void Hub - Dashboard', `
         <div class="wrap">
             <div class="top">
-                <div><h2>🛠️ Void Hub Dashboard</h2><div class="sub">ไฟล์ทั้งหมด ${scripts.length} รายการ</div></div>
+                <div><h2>VOID HUB</h2><div class="sub"><span class="dot"></span> DASHBOARD · ไฟล์ทั้งหมด ${scripts.length} รายการ</div></div>
                 <form method="POST" action="/logout" style="margin:0">${csrf}<button class="b b-red">ออกจากระบบ</button></form>
             </div>
             ${text ? `<div class="toast ${type}">${esc(text)}</div>` : ''}
