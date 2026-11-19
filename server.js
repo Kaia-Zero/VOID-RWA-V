@@ -4,6 +4,8 @@ const session = require('express-session');
 const multer = require('multer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -180,6 +182,29 @@ app.get('/', (req, res) => {
         </div></div>`));
 });
 
+// หน้าที่แสดงเมื่อถูกบล็อก / ไม่พบไฟล์ (ใช้แบบเดียวกันทั้งสองกรณี คนนอกจะเดาไม่ได้ว่ามีไฟล์จริงไหม)
+// ใส่รูปโดยวางไฟล์ block.png (หรือ .jpg .jpeg .gif .webp) ไว้โฟลเดอร์เดียวกับ server.js
+const BLOCK_IMG = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+    .map(e => path.join(__dirname, `block.${e}`))
+    .find(f => fs.existsSync(f));
+const BLOCK_TEXT = process.env.BLOCK_TEXT || 'ดูอะไร นะ Error';
+
+app.get('/blocked-image', (req, res) => {
+    if (!BLOCK_IMG) return res.status(404).end();
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.sendFile(BLOCK_IMG);
+});
+
+const deny = res => {
+    res.status(404).set({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Error</title>
+<style>html,body{margin:0;height:100%;background:#111;display:flex;align-items:center;justify-content:center}
+img{max-width:100%;max-height:100vh}p{color:#ccc;font:20px sans-serif}</style></head>
+<body>${BLOCK_IMG ? '<img src="/blocked-image" alt="">' : `<p>${esc(BLOCK_TEXT)}</p>`}</body></html>`);
+};
+
 // ตรวจว่าเป็น "การเปิดหน้าเว็บของเบราว์เซอร์" จริงๆ จากหัวที่เบราว์เซอร์ส่งเฉพาะตอนเปิดหน้า
 // (ไม่ดู User-Agent เพราะ executor บางตัวใช้ Mozilla/... เหมือนกัน)
 const looksLikeBrowser = req => {
@@ -196,10 +221,10 @@ app.get('/raw/:filename', async (req, res) => {
             console.log('RAW', req.params.filename, JSON.stringify({ ua: req.get('user-agent'), accept: req.get('accept'), sfm: req.get('sec-fetch-mode'), sfd: req.get('sec-fetch-dest') }));
         }
         if (GAME_ONLY && !req.session.loggedIn && looksLikeBrowser(req)) {
-            return res.status(404).type('text/plain').send('Script not found');
+            return deny(res);
         }
         const s = await Script.findOne({ filename: req.params.filename }, 'content').lean();
-        if (!s) return res.status(404).type('text/plain').send('Script not found');
+        if (!s) return deny(res);
         res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' });
         res.send(s.content);
     } catch (err) {
