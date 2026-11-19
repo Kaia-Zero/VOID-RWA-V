@@ -31,8 +31,39 @@ if (!SESSION_SECRET) {
 // ================= Middleware =================
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: false }));
+
+// ================= กันยิงถี่ (rate limit + แบนชั่วคราว) =================
+// ปรับได้ด้วย Environment variables: RATE_LIMIT_RAW, RATE_LIMIT_ALL, RATE_BAN_MINUTES
+const RL_RAW = Number(process.env.RATE_LIMIT_RAW) || 60;    // ลิงก์ /raw ต่อนาทีต่อ IP
+const RL_ALL = Number(process.env.RATE_LIMIT_ALL) || 240;   // ทุกเส้นทางรวมกันต่อนาทีต่อ IP
+const BAN_MS = (Number(process.env.RATE_BAN_MINUTES) || 5) * 60 * 1000;
+const hits = new Map();    // key -> { n, reset }
+const banned = new Map();  // ip -> เวลาที่หมดแบน
+const over = (key, limit) => {
+    const now = Date.now();
+    let h = hits.get(key);
+    if (!h || h.reset <= now) { h = { n: 0, reset: now + 60 * 1000 }; hits.set(key, h); }
+    return ++h.n > limit;
+};
+app.use((req, res, next) => {
+    const ip = req.ip, now = Date.now();
+    const until = banned.get(ip);
+    if (until && until > now) {
+        res.set('Retry-After', String(Math.ceil((until - now) / 1000)));
+        return res.status(429).type('text/plain').send('Too many requests');
+    }
+    if (over('all:' + ip, RL_ALL) || (req.path.startsWith('/raw/') && over('raw:' + ip, RL_RAW))) {
+        banned.set(ip, now + BAN_MS);
+        res.set('Retry-After', String(Math.ceil(BAN_MS / 1000)));
+        return res.status(429).type('text/plain').send('Too many requests');
+    }
+    next();
+});
+setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (v.reset <= now) hits.delete(k);
+    for (const [k, v] of banned) if (v <= now) banned.delete(k);
+}, 60 * 1000).unref();
 app.use((req, res, next) => {
     res.set({
         'X-Content-Type-Options': 'nosniff',
@@ -62,6 +93,13 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: 'auto' },
 }));
 
+// อ่าน body: /save รับก้อนใหญ่ได้ แต่เฉพาะแอดมินที่ล็อกอิน ส่วนที่เหลือจำกัด 100 KB กันคนส่งข้อมูลก้อนใหญ่มาถล่ม
+app.use('/save',
+    (req, res, next) => (req.session.loggedIn ? next() : res.status(403).send('Access Denied')),
+    express.urlencoded({ limit: '10mb', extended: false }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ limit: '100kb', extended: false }));
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ================= Database =================
@@ -69,6 +107,19 @@ const Script = mongoose.model('Script', new mongoose.Schema({
     filename: { type: String, required: true, unique: true, trim: true },
     content: { type: String, required: true },
 }, { timestamps: true }));
+
+// แคชเนื้อสคริปต์ไว้ในหน่วยความจำ 30 วินาที (รวมชื่อที่ไม่มีอยู่) ลดภาระฐานข้อมูลเวลาโดนยิงถี่
+const rawCache = new Map();
+const CACHE_TTL = 30 * 1000, CACHE_MAX = 500;
+async function getScript(name) {
+    const c = rawCache.get(name);
+    if (c && c.exp > Date.now()) return c.content;
+    const s = await Script.findOne({ filename: name }, 'content').lean();
+    const content = s ? s.content : null;
+    if (rawCache.size >= CACHE_MAX) rawCache.clear();
+    rawCache.set(name, { content, exp: Date.now() + CACHE_TTL });
+    return content;
+}
 
 // ================= Helpers =================
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -246,10 +297,12 @@ app.get('/raw/:filename', async (req, res) => {
         if (GAME_ONLY && !req.session.loggedIn && looksLikeBrowser(req)) {
             return deny(res);
         }
-        const s = await Script.findOne({ filename: req.params.filename }, 'content').lean();
-        if (!s) return deny(res);
+        const name = req.params.filename;
+        if (name.length > 100) return deny(res);
+        const content = await getScript(name);
+        if (content === null) return deny(res);
         res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' });
-        res.send(s.content);
+        res.send(content);
     } catch (err) {
         console.error(err);
         res.status(500).type('text/plain').send('Server Error');
@@ -376,6 +429,7 @@ app.post('/save', requireAuth, checkCsrf, async (req, res) => {
             if (await Script.exists({ filename: name })) return res.redirect(`${DASH}?m=exists`);
         }
         await Script.findOneAndUpdate({ filename: name }, { content }, { upsert: true });
+        rawCache.delete(name);
         res.redirect(`${DASH}?m=saved`);
     } catch (err) {
         console.error(err);
@@ -392,6 +446,7 @@ app.post('/upload', requireAuth, upload.single('luaFile'), checkCsrf, async (req
         const content = req.file.buffer.toString('utf-8').replace(/\r\n/g, '\n');
         if (!content.trim()) return res.redirect(`${DASH}?m=empty`);
         await Script.findOneAndUpdate({ filename: name }, { content }, { upsert: true });
+        rawCache.delete(name);
         res.redirect(`${DASH}?m=uploaded`);
     } catch (err) {
         console.error(err);
@@ -401,7 +456,9 @@ app.post('/upload', requireAuth, upload.single('luaFile'), checkCsrf, async (req
 
 app.post('/delete', requireAuth, checkCsrf, async (req, res) => {
     try {
-        await Script.deleteOne({ filename: str(req.body.filename) });
+        const delName = str(req.body.filename);
+        await Script.deleteOne({ filename: delName });
+        rawCache.delete(delName);
         res.redirect(`${DASH}?m=deleted`);
     } catch (err) {
         console.error(err);
@@ -416,6 +473,7 @@ app.post('/logout', checkCsrf, (req, res) => {
 // ================= Error handler =================
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) return res.redirect(`${DASH}?m=toolarge`);
+    if (err.type === 'entity.too.large') return req.path === '/save' ? res.redirect(`${DASH}?m=toolarge`) : res.status(413).type('text/plain').send('Payload too large');
     console.error(err);
     res.status(500).send('Server Error');
 });
