@@ -35,6 +35,7 @@ app.disable('x-powered-by');
 // ================= กันยิงถี่ (rate limit + แบนชั่วคราว) =================
 // ปรับได้ด้วย Environment variables: RATE_LIMIT_RAW, RATE_LIMIT_ALL, RATE_BAN_MINUTES
 const RL_RAW = Number(process.env.RATE_LIMIT_RAW) || 60;    // ลิงก์ /raw ต่อนาทีต่อ IP
+const RL_KEY = Number(process.env.RATE_LIMIT_KEY) || 30;    // ขอคีย์ใหม่ (/api/key) ต่อนาทีต่อ IP
 const RL_ALL = Number(process.env.RATE_LIMIT_ALL) || 240;   // ทุกเส้นทางรวมกันต่อนาทีต่อ IP
 const BAN_MS = (Number(process.env.RATE_BAN_MINUTES) || 5) * 60 * 1000;
 const hits = new Map();    // key -> { n, reset }
@@ -52,7 +53,9 @@ app.use((req, res, next) => {
         res.set('Retry-After', String(Math.ceil((until - now) / 1000)));
         return res.status(429).type('text/plain').send('Too many requests');
     }
-    if (over('all:' + ip, RL_ALL) || (req.path.startsWith('/raw/') && over('raw:' + ip, RL_RAW))) {
+    if (over('all:' + ip, RL_ALL)
+        || (req.path.startsWith('/raw/') && over('raw:' + ip, RL_RAW))
+        || (req.path.startsWith('/api/key/') && over('key:' + ip, RL_KEY))) {
         banned.set(ip, now + BAN_MS);
         res.set('Retry-After', String(Math.ceil(BAN_MS / 1000)));
         return res.status(429).type('text/plain').send('Too many requests');
@@ -107,6 +110,27 @@ const Script = mongoose.model('Script', new mongoose.Schema({
     filename: { type: String, required: true, unique: true, trim: true },
     content: { type: String, required: true },
 }, { timestamps: true }));
+
+// คีย์แบบใช้ครั้งเดียว: สคริปต์ขอคีย์อัตโนมัติก่อนโหลดสคริปต์จริงทุกครั้ง คีย์หมดอายุเองใน 2 นาทีถ้าไม่ได้ใช้ (TTL index)
+const Key = mongoose.model('Key', new mongoose.Schema({
+    filename: { type: String, required: true },
+    device: { type: String, required: true },
+    key: { type: String, required: true, unique: true },
+    used: { type: Boolean, default: false },
+    expiresAt: { type: Date, required: true, expires: 0 },
+}));
+const genKey = () => crypto.randomBytes(20).toString('hex');
+const validDevice = d => /^[A-Za-z0-9]{3,64}$/.test(d);
+// Adler-32 checksum (อัลกอริทึมมาตรฐานสาธารณะ ใช้ให้ตัวโหลดฝั่งเกมเช็คได้เองว่าของที่โหลดมาครบไม่เพี้ยน)
+function adler32(buf) {
+    let a = 1, b = 0;
+    const MOD = 65521;
+    for (let i = 0; i < buf.length; i++) {
+        a = (a + buf[i]) % MOD;
+        b = (b + a) % MOD;
+    }
+    return ((b << 16) | a) >>> 0;
+}
 
 // แคชเนื้อสคริปต์ไว้ในหน่วยความจำ 30 วินาที (รวมชื่อที่ไม่มีอยู่) ลดภาระฐานข้อมูลเวลาโดนยิงถี่
 const rawCache = new Map();
@@ -289,6 +313,35 @@ const looksLikeBrowser = req => {
         || !!req.get('upgrade-insecure-requests');
 };
 
+// สคริปต์ขอคีย์ใหม่อัตโนมัติก่อนโหลดของจริงทุกครั้ง (ไม่ต้องให้ผู้เล่นทำอะไร)
+// เปิด/ปิดได้ด้วย Environment variable: KEY_SYSTEM=false (ปิด = /raw ใช้ได้โดยไม่ต้องมีคีย์ เหมือนเดิม)
+const KEY_SYSTEM = process.env.KEY_SYSTEM !== 'false';
+const KEY_TTL_MS = 2 * 60 * 1000;
+
+app.get('/api/key/:filename', async (req, res) => {
+    try {
+        if (!KEY_SYSTEM) return res.status(404).json({ error: 'disabled' });
+        if (GAME_ONLY && !req.session.loggedIn && looksLikeBrowser(req)) {
+            return res.status(404).json({ error: 'not found' });
+        }
+        const name = req.params.filename;
+        const device = str(req.query.device);
+        if (name.length > 100 || !validDevice(device)) return res.status(400).json({ error: 'bad request' });
+        const content = await getScript(name);
+        if (content === null) return res.status(404).json({ error: 'not found' });
+        const buf = Buffer.from(content, 'utf8');
+        const key = genKey();
+        await Key.create({ filename: name, device, key, expiresAt: new Date(Date.now() + KEY_TTL_MS) });
+        res.set('Cache-Control', 'no-store').json({
+            key, expiresIn: KEY_TTL_MS / 1000,
+            len: buf.length, checksum: adler32(buf),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'server error' });
+    }
+});
+
 app.get('/raw/:filename', async (req, res) => {
     try {
         if (process.env.RAW_DEBUG === 'true') {
@@ -299,6 +352,16 @@ app.get('/raw/:filename', async (req, res) => {
         }
         const name = req.params.filename;
         if (name.length > 100) return deny(res);
+
+        if (KEY_SYSTEM && !req.session.loggedIn) {
+            const key = str(req.query.key), device = str(req.query.device);
+            if (!key || !validDevice(device)) return deny(res);
+            const doc = await Key.findOne({ filename: name, key, device, used: false, expiresAt: { $gt: new Date() } });
+            if (!doc) return deny(res);
+            doc.used = true;
+            await doc.save();
+        }
+
         const content = await getScript(name);
         if (content === null) return deny(res);
         res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' });
@@ -358,14 +421,42 @@ app.get(DASH, async (req, res) => {
 
         const list = scripts.map(s => {
             const url = `${base}/raw/${encodeURIComponent(s.filename)}`;
-            const snippet = `loadstring(game:HttpGet("${url}"))()`;
+            const loader = [
+                `local Base,File="${base}","${encodeURIComponent(s.filename)}"`,
+                `local HS=game:GetService("HttpService")`,
+                `local function dev() return ("%d%d"):format(math.random(1e5,9e5),math.floor(tick()*1000)%1e6) end`,
+                `local function adler32(str)`,
+                `  local a,b=1,0`,
+                `  for i=1,#str do a=(a+string.byte(str,i))%65521;b=(b+a)%65521 end`,
+                `  return b*65536+a`,
+                `end`,
+                `local function attempt()`,
+                `  local Dev=dev()`,
+                `  local ok,res=pcall(function() return HS:JSONDecode(game:HttpGet(Base.."/api/key/"..File.."?device="..Dev)) end)`,
+                `  if not ok or not res or not res.key then return nil,"ขอคีย์ไม่สำเร็จ" end`,
+                `  local ok2,code=pcall(function() return game:HttpGet(Base.."/raw/"..File.."?key="..res.key.."&device="..Dev) end)`,
+                `  if not ok2 or type(code)~="string" or code=="" then return nil,"โหลดสคริปต์ไม่สำเร็จ" end`,
+                `  if res.len and #code~=res.len then return nil,"ขนาดไฟล์ไม่ตรง (โหลดมาไม่ครบ)" end`,
+                `  if res.checksum and adler32(code)~=res.checksum then return nil,"เช็คซัมไม่ตรง (ไฟล์เพี้ยน)" end`,
+                `  return code`,
+                `end`,
+                `local code,err`,
+                `for i=1,3 do`,
+                `  code,err=attempt()`,
+                `  if code then break end`,
+                `  warn("[VOID HUB] ลองครั้งที่ "..i.." ไม่สำเร็จ: "..tostring(err))`,
+                `  if i<3 then pcall(task.wait,1) end`,
+                `end`,
+                `if not code then warn("[VOID HUB] โหลดสคริปต์ไม่สำเร็จหลังลอง 3 ครั้ง: "..tostring(err)) return end`,
+                `loadstring(code)()`,
+            ].join('\n');
             return `
             <li class="item" data-name="${esc(s.filename.toLowerCase())}">
                 <div class="fn">📄 ${esc(s.filename)}</div>
                 <div class="sub">${fmtSize(s.size)}${s.updatedAt ? ' · ' + esc(fmtDate(s.updatedAt)) : ''}</div>
                 <div class="actions">
                     <button type="button" class="b b-ac" data-copy="${esc(url)}">คัดลอกลิงก์</button>
-                    <button type="button" class="b" data-copy="${esc(snippet)}">loadstring</button>
+                    <button type="button" class="b" data-copy="${esc(loader)}">คัดลอกตัวโหลด (มีระบบคีย์)</button>
                     <a class="b" href="${esc(url)}" target="_blank" rel="noopener">Raw</a>
                     <a class="b" href="?edit=${encodeURIComponent(s.filename)}#editor">แก้ไข</a>
                     <form method="POST" action="/delete" data-msg="ลบไฟล์ ${esc(s.filename)} ออกจากระบบ?" onsubmit="return confirm(this.dataset.msg)">
