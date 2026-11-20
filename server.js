@@ -316,6 +316,9 @@ const looksLikeBrowser = req => {
 // สคริปต์ขอคีย์ใหม่อัตโนมัติก่อนโหลดของจริงทุกครั้ง (ไม่ต้องให้ผู้เล่นทำอะไร)
 // เปิด/ปิดได้ด้วย Environment variable: KEY_SYSTEM=false (ปิด = /raw ใช้ได้โดยไม่ต้องมีคีย์ เหมือนเดิม)
 const KEY_SYSTEM = process.env.KEY_SYSTEM !== 'false';
+// ชื่อไฟล์ที่ไม่ต้องมีคีย์ก็เปิด /raw ได้เลย (คั่นด้วยจุลภาค) ใช้สำหรับไฟล์ "ตัวโหลด" เองที่ไม่มีความลับ
+// ตั้งค่าใน Environment variable: KEY_EXEMPT=loader,Script2
+const KEY_EXEMPT = new Set(str(process.env.KEY_EXEMPT).split(',').map(x => x.trim()).filter(Boolean));
 const KEY_TTL_MS = 2 * 60 * 1000;
 
 app.get('/api/key/:filename', async (req, res) => {
@@ -353,7 +356,7 @@ app.get('/raw/:filename', async (req, res) => {
         const name = req.params.filename;
         if (name.length > 100) return deny(res);
 
-        if (KEY_SYSTEM && !req.session.loggedIn) {
+        if (KEY_SYSTEM && !req.session.loggedIn && !KEY_EXEMPT.has(name)) {
             const key = str(req.query.key), device = str(req.query.device);
             if (!key || !validDevice(device)) return deny(res);
             const doc = await Key.findOne({ filename: name, key, device, used: false, expiresAt: { $gt: new Date() } });
