@@ -154,53 +154,83 @@ const checkCsrf = (req, res, next) => {
 
 // ================= หน้าเว็บ (UI) =================
 const CSS = `
-:root{--bg:#0a0a0a;--panel:rgba(255,255,255,.045);--line:rgba(255,255,255,.15);--ac:#ffffff;--red:#ff5a5a;--mut:#8c8c8c;--ink:#ededed}
+:root{--bg:#1a1727;--surface:#231f33;--raised:#2c2740;--line:#3d3757;--ink:#ece9f6;--mut:#a29cbd;--ac:#9b8cff;--ac-ink:#17122e;--red:#f0687f;--ok:#62d6a6;
+--mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;--sans:'IBM Plex Sans Thai','Segoe UI',Tahoma,sans-serif}
 *{box-sizing:border-box}
-html{background:var(--bg)}
-body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.6 'Segoe UI',Tahoma,'Noto Sans Thai',sans-serif;padding:20px;position:relative}
-body::before{content:'';position:fixed;inset:0;z-index:-2;background:radial-gradient(620px 420px at 12% -5%,rgba(255,255,255,.09),transparent 70%),radial-gradient(620px 420px at 100% 100%,rgba(255,255,255,.06),transparent 70%)}
-body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%);mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%)}
-.wrap{max-width:680px;margin:0 auto}
-h1,h2{font-family:Orbitron,'Segoe UI','Noto Sans Thai',sans-serif;letter-spacing:.06em;margin:0 0 4px}
-h2{color:#fff;font-size:22px;text-shadow:0 0 14px rgba(255,255,255,.3)}
-h3{display:flex;align-items:center;gap:12px;color:var(--ink);font-size:17px;margin:36px 0 14px}
-h3::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
-.sub{color:var(--mut);font-size:14px}
-.hero{text-align:center}
-.eyebrow{color:var(--mut);font:600 13px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;margin-bottom:10px}
-.hero-title{font-size:clamp(40px,12vw,76px);font-weight:800;line-height:1.1;background:linear-gradient(180deg,#ffffff,#8a8a8a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(255,255,255,.22))}
-input[type=text],input[type=password],input[type=search],textarea{width:100%;padding:12px 14px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;outline:none;margin-bottom:12px;transition:border-color .15s,box-shadow .15s}
-input:focus,textarea:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
-input[readonly]{opacity:.65}
-textarea{resize:vertical;min-height:180px}
-.b{display:inline-block;padding:7px 13px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.04);color:var(--ink);font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
-.b:hover{border-color:#fff;background:rgba(255,255,255,.1);color:#fff}
-.b-ac{background:#fff;border-color:#fff;color:#000}
-.b-ac:hover{background:#dcdcdc;border-color:#dcdcdc;color:#000}
-.b-red{color:var(--red);border-color:rgba(255,90,90,.5);background:transparent}
-.b-red:hover{color:var(--red);border-color:var(--red);background:rgba(255,90,90,.1)}
-.b-lg{padding:12px 20px;font-size:15px;border-radius:10px}
-.b-full{display:block;width:100%;text-align:center}
-ul{list-style:none;padding:0;margin:0}
-.item{background:var(--panel);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--line);border-left:3px solid #fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;transition:border-color .15s,background .15s}
-.item:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.07)}
-.fn{font-family:ui-monospace,Menlo,Consolas,monospace;color:#fff;word-break:break-all}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+h1,h2{margin:0;font-weight:600}
+.meta,.sub{color:var(--mut);font-size:14px}
+.sub{margin:0}
+
+/* ---------- ปุ่ม / ฟอร์ม ---------- */
+.b{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border:1px solid var(--line);border-radius:10px;background:var(--raised);color:var(--ink);font:500 15px/1.2 var(--sans);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s}
+.b:hover{border-color:var(--mut)}
+.b-sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.b-ac{background:var(--ac);border-color:var(--ac);color:var(--ac-ink);font-weight:600}
+.b-ac:hover{background:#b3a8ff;border-color:#b3a8ff}
+.b-ghost{background:transparent}
+.b-red{background:transparent;color:var(--red);border-color:rgba(240,104,127,.45)}
+.b-red:hover{background:rgba(240,104,127,.12);border-color:var(--red)}
+.b-full{display:flex;width:100%}
+.lbl{display:block;margin:0 0 6px;color:var(--mut);font-size:14px}
+input[type=text],input[type=password],input[type=search],textarea{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:14px/1.6 var(--mono);outline:none;margin-bottom:14px;transition:border-color .15s}
+input[type=password]{font-family:var(--sans);font-size:16px}
+input:focus,textarea:focus{border-color:var(--ac)}
+input[readonly]{opacity:.6}
+textarea{min-height:340px;resize:vertical;white-space:pre;overflow:auto;tab-size:4}
+::placeholder{color:#6f6990}
+
+/* ---------- ตราโลโก้ ---------- */
+.mark{display:inline-block;width:24px;height:24px;border-radius:50%;flex:none;background:radial-gradient(circle,var(--bg) 0 48%,transparent 50%),conic-gradient(from 200deg,#9b8cff,#5b8cff,#c77dff,#9b8cff)}
+
+/* ---------- หน้าแรก / บล็อก / ล็อกอิน ---------- */
+.center{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.hero{display:grid;justify-items:center;gap:16px;text-align:center}
+.stage{position:relative;display:grid;place-items:center;width:min(78vw,400px);aspect-ratio:1}
+.orb{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#0e0c17 0 62%,transparent 64%),conic-gradient(from 0deg,#9b8cff,#5b8cff,#c77dff,#9b8cff);box-shadow:0 0 100px rgba(155,140,255,.25);animation:spin 36s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero-title{position:relative;font-size:clamp(44px,13vw,80px);font-weight:700;line-height:1.02;letter-spacing:.06em}
+.badge{display:inline-flex;align-items:center;gap:9px;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:30px 26px}
+.card .mark{width:40px;height:40px;margin-bottom:14px}
+.card h1{font-size:22px;margin-bottom:4px}
+.card form{margin-top:22px}
+.card input{margin-bottom:12px}
+.denied{text-align:center;color:var(--mut)}
+
+/* ---------- แดชบอร์ด ---------- */
+.shell{max-width:1120px;margin:0 auto;padding:20px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 0 22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.06em}
+.brand .meta{font-weight:400;letter-spacing:0;padding-left:10px;border-left:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:20px;align-items:start}
+.stack{display:grid;gap:20px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.panel-h h2{font-size:16px;display:flex;align-items:center;gap:8px;word-break:break-all}
+.panel-b{padding:16px}
+.count{padding:0 9px;border-radius:999px;background:var(--raised);color:var(--mut);font-size:13px;font-weight:500}
+.search{padding:12px 12px 0}
+.search input{margin:0}
+.files{list-style:none;margin:0;padding:8px;max-height:72vh;overflow:auto}
+.file{padding:11px 12px;border:1px solid transparent;border-radius:10px;margin-bottom:4px}
+.file:hover{background:var(--raised)}
+.file.on{background:var(--raised);border-color:var(--ac)}
+.fn{font:14px/1.5 var(--mono);word-break:break-all}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .actions form{margin:0}
-.card{background:var(--panel);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:28px;box-shadow:0 0 34px rgba(255,255,255,.06)}
-.login{width:100%;max-width:360px;text-align:center}
-.login h2{margin-bottom:6px}
-.login form{margin-top:20px}
-.lock{font-size:34px;margin-bottom:6px;filter:grayscale(1) brightness(1.6)}
-.toast{padding:10px 14px;border-radius:10px;margin:14px 0;font-weight:600}
-.toast.ok{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.6)}
-.toast.err{background:rgba(255,90,90,.09);color:var(--red);border:1px solid var(--red)}
-.drop{background:rgba(0,0,0,.45);border:1px dashed rgba(255,255,255,.3);padding:18px;border-radius:10px;text-align:center;color:var(--mut);margin-bottom:12px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.center{display:flex;justify-content:center;align-items:center;min-height:90vh}
-.badge{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);color:#fff;padding:6px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.5);font-size:14px}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.8s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.empty{padding:26px 16px;text-align:center;color:var(--mut);font-size:14px}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.foot .actions{margin:0}
+.drop{padding:18px;margin-bottom:14px;border:1px dashed var(--line);border-radius:10px;background:var(--bg);color:var(--mut);font-size:14px}
+.drop input{width:100%;color:var(--mut)}
+.toast{padding:11px 14px;border-radius:10px;margin:0 0 18px;font-weight:500;border:1px solid;transition:opacity .6s}
+.toast.ok{background:rgba(98,214,166,.1);border-color:rgba(98,214,166,.5);color:var(--ok)}
+.toast.err{background:rgba(240,104,127,.1);border-color:rgba(240,104,127,.5);color:var(--red)}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.files{max-height:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 `;
 
@@ -211,7 +241,7 @@ const page = (title, body, script = '') => `<!DOCTYPE html>
 <title>${esc(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>${CSS}</style></head>
 <body>${body}${script ? `<script>${script}</script>` : ''}</body></html>`;
 
@@ -227,8 +257,18 @@ const CLIENT_JS = `
   var q=document.getElementById('q');
   if(q)q.addEventListener('input',function(){
     var v=q.value.trim().toLowerCase();
-    document.querySelectorAll('.item').forEach(function(li){li.hidden=!!v&&li.getAttribute('data-name').indexOf(v)<0});
+    document.querySelectorAll('.file').forEach(function(li){li.hidden=!!v&&li.getAttribute('data-name').indexOf(v)<0});
   });
+  var ta=document.getElementById('ta'),cnt=document.getElementById('cnt');
+  function upd(){if(ta&&cnt){var v=ta.value;cnt.textContent=(v?v.split('\\n').length:0)+' บรรทัด · '+v.length+' ตัวอักษร'}}
+  if(ta){
+    upd();ta.addEventListener('input',upd);
+    ta.addEventListener('keydown',function(e){
+      if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();var s=ta.selectionStart;ta.setRangeText('\\t',s,ta.selectionEnd,'end');upd()}
+    });
+  }
+  var t=document.querySelector('.toast');
+  if(t)setTimeout(function(){t.style.opacity='0'},4000);
   if(location.search.indexOf('m=')>-1)history.replaceState(null,'',location.pathname);
 })();
 `;
@@ -249,12 +289,14 @@ const MESSAGES = {
 // ================= Routes: สาธารณะ =================
 app.get('/', (req, res) => {
     res.send(page('VOID HUB', `
-        <div class="center"><div class="hero">
-            <div class="eyebrow">// RAW SCRIPT SERVER</div>
-            <h1 class="hero-title">VOID HUB</h1>
+        <main class="center"><div class="hero">
+            <div class="stage">
+                <div class="orb" aria-hidden="true"></div>
+                <h1 class="hero-title">VOID<br>HUB</h1>
+            </div>
             <p class="sub">ระบบโฮสต์สคริปต์ออนไลน์</p>
-            <div style="margin-top:36px"><span class="badge"><span class="dot"></span>ระบบออนไลน์</span></div>
-        </div></div>`));
+            <span class="badge"><span class="dot"></span>ระบบพร้อมใช้งาน</span>
+        </div></main>`));
 });
 
 // หน้าที่แสดงเมื่อถูกบล็อก / ไม่พบไฟล์ (ใช้แบบเดียวกันทั้งสองกรณี คนนอกจะเดาไม่ได้ว่ามีไฟล์จริงไหม)
@@ -275,8 +317,8 @@ const deny = res => {
     res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>Error</title>
-<style>html,body{margin:0;height:100%;background:#111;display:flex;align-items:center;justify-content:center}
-img{max-width:100%;max-height:100vh}p{color:#ccc;font:20px sans-serif}</style></head>
+<style>html,body{margin:0;height:100%;background:#1a1727;display:flex;align-items:center;justify-content:center}
+img{max-width:100%;max-height:100vh}p{color:#a29cbd;font:20px 'IBM Plex Sans Thai','Segoe UI',Tahoma,sans-serif;padding:20px;text-align:center}</style></head>
 <body>${BLOCK_IMG ? '<img src="/blocked-image" alt="">' : `<p>${esc(BLOCK_TEXT)}</p>`}</body></html>`);
 };
 
@@ -314,19 +356,20 @@ app.get('/raw/:filename', async (req, res) => {
 // ================= Routes: ผู้ดูแล =================
 app.get(ADMIN, (req, res) => {
     if (req.session.loggedIn) return res.redirect(DASH);
-    const err = req.query.err === '2' ? 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาที'
-              : req.query.err ? 'รหัสผ่านไม่ถูกต้อง' : '';
-    res.set('Cache-Control', 'no-store').send(page('Admin Login', `
-        <div class="center"><div class="card login">
-            <div class="lock">🔐</div>
-            <h2>ADMIN ACCESS</h2>
-            <p class="sub">กรอกรหัสผ่านเพื่อเข้าสู่ระบบ</p>
-            ${err ? `<div class="toast err">${esc(err)}</div>` : ''}
+    const err = req.query.err === '2' ? 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่'
+              : req.query.err ? 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง' : '';
+    res.set('Cache-Control', 'no-store').send(page('เข้าสู่ระบบแอดมิน', `
+        <main class="center"><div class="card">
+            <span class="mark" aria-hidden="true"></span>
+            <h1>เข้าสู่ระบบแอดมิน</h1>
+            <p class="sub">กรอกรหัสผ่านเพื่อจัดการสคริปต์</p>
             <form method="POST" action="/login">
-                <input type="password" name="password" placeholder="รหัสผ่าน" autocomplete="current-password" autofocus required>
-                <button class="b b-ac b-lg b-full">เข้าสู่ระบบ</button>
+                ${err ? `<div class="toast err" role="alert">${esc(err)}</div>` : ''}
+                <label class="lbl" for="pw">รหัสผ่าน</label>
+                <input type="password" id="pw" name="password" autocomplete="current-password" autofocus required>
+                <button class="b b-ac b-full">เข้าสู่ระบบ</button>
             </form>
-        </div></div>`));
+        </div></main>`));
 });
 
 app.post('/login', (req, res) => {
@@ -361,18 +404,19 @@ app.get(DASH, async (req, res) => {
         const list = scripts.map(s => {
             const url = `${base}/raw/${encodeURIComponent(s.filename)}`;
             const loader = `loadstring(game:HttpGet("${url}"))()`;
+            const on = editing && editing.filename === s.filename;
             return `
-            <li class="item" data-name="${esc(s.filename.toLowerCase())}">
-                <div class="fn">📄 ${esc(s.filename)}</div>
-                <div class="sub">${fmtSize(s.size)}${s.updatedAt ? ' · ' + esc(fmtDate(s.updatedAt)) : ''}</div>
+            <li class="file${on ? ' on' : ''}" data-name="${esc(s.filename.toLowerCase())}">
+                <div class="fn">${esc(s.filename)}</div>
+                <div class="meta">${fmtSize(s.size)}${s.updatedAt ? ' · ' + esc(fmtDate(s.updatedAt)) : ''}</div>
                 <div class="actions">
-                    <button type="button" class="b b-ac" data-copy="${esc(url)}">คัดลอกลิงก์</button>
-                    <button type="button" class="b" data-copy="${esc(loader)}">คัดลอกตัวโหลด</button>
-                    <a class="b" href="${esc(url)}" target="_blank" rel="noopener">Raw</a>
-                    <a class="b" href="?edit=${encodeURIComponent(s.filename)}#editor">แก้ไข</a>
+                    <button type="button" class="b b-sm b-ac" data-copy="${esc(url)}">คัดลอกลิงก์</button>
+                    <button type="button" class="b b-sm" data-copy="${esc(loader)}">คัดลอกตัวโหลด</button>
+                    <a class="b b-sm" href="${esc(url)}" target="_blank" rel="noopener">Raw</a>
+                    <a class="b b-sm" href="?edit=${encodeURIComponent(s.filename)}#editor">แก้ไข</a>
                     <form method="POST" action="/delete" data-msg="ลบไฟล์ ${esc(s.filename)} ออกจากระบบ?" onsubmit="return confirm(this.dataset.msg)">
                         ${csrf}<input type="hidden" name="filename" value="${esc(s.filename)}">
-                        <button class="b b-red">ลบ</button>
+                        <button class="b b-sm b-red">ลบ</button>
                     </form>
                 </div>
             </li>`;
@@ -380,37 +424,55 @@ app.get(DASH, async (req, res) => {
 
         const [type, text] = MESSAGES[str(req.query.m)] || [];
 
-        res.set('Cache-Control', 'no-store').send(page('Void Hub - Dashboard', `
-        <div class="wrap">
-            <div class="top">
-                <div><h2>VOID HUB</h2><div class="sub"><span class="dot"></span> DASHBOARD · ไฟล์ทั้งหมด ${scripts.length} รายการ</div></div>
-                <form method="POST" action="/logout" style="margin:0">${csrf}<button class="b b-red">ออกจากระบบ</button></form>
-            </div>
-            ${text ? `<div class="toast ${type}">${esc(text)}</div>` : ''}
+        res.set('Cache-Control', 'no-store').send(page('Void Hub - แดชบอร์ด', `
+        <div class="shell">
+            <header class="bar">
+                <div class="brand"><span class="mark" aria-hidden="true"></span>VOID HUB<span class="meta">แดชบอร์ด</span></div>
+                <form method="POST" action="/logout" style="margin:0">${csrf}<button class="b b-ghost">ออกจากระบบ</button></form>
+            </header>
+            ${text ? `<div class="toast ${type}" role="status">${esc(text)}</div>` : ''}
 
-            <h3>📜 รายการไฟล์ในระบบ</h3>
-            ${scripts.length > 4 ? '<input type="search" id="q" placeholder="ค้นหาชื่อไฟล์...">' : ''}
-            <ul>${list || '<li class="sub" style="text-align:center;padding:20px">ยังไม่มีไฟล์ในระบบ</li>'}</ul>
+            <div class="grid">
+                <section class="panel">
+                    <div class="panel-h">
+                        <h2>ไฟล์ในระบบ <span class="count">${scripts.length}</span></h2>
+                        <a class="b b-sm b-ac" href="${DASH}#editor">+ ไฟล์ใหม่</a>
+                    </div>
+                    ${scripts.length ? '<div class="search"><input type="search" id="q" placeholder="ค้นหาชื่อไฟล์" aria-label="ค้นหาชื่อไฟล์"></div>' : ''}
+                    <ul class="files">${list || '<li class="empty">ยังไม่มีไฟล์ในระบบ เริ่มจากสร้างไฟล์แรกหรืออัปโหลดได้เลย</li>'}</ul>
+                </section>
 
-            <h3 id="editor">${editing ? '✏️ แก้ไข: ' + esc(editing.filename) : '✍️ สร้างไฟล์ใหม่'}</h3>
-            <form method="POST" action="/save">
-                ${csrf}<input type="hidden" name="mode" value="${editing ? 'edit' : 'new'}">
-                <input type="text" name="filename" value="${esc(editing ? editing.filename : '')}" ${editing ? 'readonly' : ''}
-                    placeholder="ชื่อไฟล์ เช่น main.lua" maxlength="100" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required>
-                <textarea name="content" spellcheck="false" placeholder="วางโค้ด Lua ที่นี่..." required>
+                <div class="stack">
+                    <section class="panel" id="editor">
+                        <div class="panel-h"><h2>${editing ? 'แก้ไข ' + esc(editing.filename) : 'สร้างไฟล์ใหม่'}</h2></div>
+                        <form method="POST" action="/save" class="panel-b">
+                            ${csrf}<input type="hidden" name="mode" value="${editing ? 'edit' : 'new'}">
+                            <label class="lbl" for="fname">ชื่อไฟล์</label>
+                            <input type="text" id="fname" name="filename" value="${esc(editing ? editing.filename : '')}" ${editing ? 'readonly' : ''}
+                                placeholder="เช่น main.lua" maxlength="100" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required>
+                            <label class="lbl" for="ta">โค้ด</label>
+                            <textarea id="ta" name="content" wrap="off" spellcheck="false" placeholder="วางโค้ด Lua ที่นี่" required>
 ${esc(editing ? editing.content : '')}</textarea>
-                <div class="actions" style="margin-top:0">
-                    <button class="b b-ac b-lg" style="flex:1">💾 บันทึกโค้ด</button>
-                    ${editing ? `<a class="b b-lg" href="${DASH}">ยกเลิก</a>` : ''}
-                </div>
-            </form>
+                            <div class="foot">
+                                <span class="meta" id="cnt"></span>
+                                <div class="actions">
+                                    ${editing ? `<a class="b" href="${DASH}">ยกเลิก</a>` : ''}
+                                    <button class="b b-ac">บันทึกโค้ด</button>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
 
-            <h3>📁 อัปโหลดไฟล์ (.lua / .txt)</h3>
-            <form method="POST" action="/upload" enctype="multipart/form-data">
-                ${csrf}
-                <div class="drop"><input type="file" name="luaFile" accept=".lua,.txt" required></div>
-                <button class="b b-lg b-full">⬆️ อัปโหลดไฟล์ขึ้นระบบ</button>
-            </form>
+                    <section class="panel">
+                        <div class="panel-h"><h2>อัปโหลดไฟล์</h2><span class="meta">.lua หรือ .txt · ไม่เกิน 10 MB</span></div>
+                        <form method="POST" action="/upload" enctype="multipart/form-data" class="panel-b">
+                            ${csrf}
+                            <div class="drop"><input type="file" name="luaFile" accept=".lua,.txt" required></div>
+                            <button class="b b-full">อัปโหลดขึ้นระบบ</button>
+                        </form>
+                    </section>
+                </div>
+            </div>
         </div>`, CLIENT_JS));
     } catch (err) {
         console.error(err);
